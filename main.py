@@ -269,7 +269,7 @@ async def weather(interaction: discord.Interaction, 도시: str):
     embed.set_footer(text="OpenWeatherMap 제공")
 
     await interaction.followup.send(embed=embed)
-
+ 
 # ── 실행 ────────────────────────────────────────────────
 
 bot.run(os.getenv("DISCORD_TOKEN"))

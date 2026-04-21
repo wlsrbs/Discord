@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# 봇 설정
+# 봇 설정 - message_content intent는 욕설 필터를 위해 유지
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -27,7 +27,9 @@ def contains_bad_word(text: str) -> bool:
 
 @bot.event
 async def on_ready():
+    await bot.tree.sync()  # 슬래시 명령어 디스코드 서버에 등록
     print(f"{bot.user} 봇이 실행되었습니다!")
+    print("슬래시 명령어가 동기화되었습니다.")
 
 @bot.event
 async def on_message(message):
@@ -35,7 +37,7 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # 욕설 감지
+    # 욕설 감지 (슬래시 명령어여도 채팅 메시지는 여전히 필터링)
     if contains_bad_word(message.content):
         try:
             await message.delete()
@@ -46,29 +48,23 @@ async def on_message(message):
             await warning.delete(delay=5)
         except discord.Forbidden:
             await message.channel.send("❌ 메시지 삭제 권한이 없습니다. 봇에게 메시지 관리 권한을 부여해주세요.")
-        return  # 욕설이면 명령어 처리 안 함
 
-    await bot.process_commands(message)
+# ── 슬래시 명령어 ────────────────────────────────────────
 
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        await ctx.send("❌ 알 수 없는 명령어입니다. `!도움말`을 입력해보세요.")
-    elif isinstance(error, commands.MissingPermissions):
-        await ctx.send("❌ 권한이 없습니다.")
+@bot.tree.command(name="ping", description="봇 응답속도 확인")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        f"🏓 퐁! 응답속도: {round(bot.latency * 1000)}ms"
+    )
 
-# ── 명령어 ──────────────────────────────────────────────
+@bot.tree.command(name="안녕", description="봇에게 인사하기")
+async def hello(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        f"안녕하세요, {interaction.user.mention}!"
+    )
 
-@bot.command(name="ping")
-async def ping(ctx):
-    await ctx.send(f"🏓 퐁! 응답속도: {round(bot.latency * 1000)}ms")
-
-@bot.command(name="안녕")
-async def hello(ctx):
-    await ctx.send(f"안녕하세요, {ctx.author.mention}!")
-
-@bot.command(name="정보")
-async def info(ctx):
+@bot.tree.command(name="정보", description="봇 정보 확인")
+async def info(interaction: discord.Interaction):
     embed = discord.Embed(
         title="봇 정보",
         description="파이썬으로 만든 디스코드 봇입니다.",
@@ -78,16 +74,16 @@ async def info(ctx):
     embed.add_field(name="제작자", value="나", inline=True)
     embed.add_field(name="욕설 필터", value=f"{len(BAD_WORDS)}개 단어 등록됨", inline=True)
     embed.set_footer(text="discord.py로 제작")
-    await ctx.send(embed=embed)
+    await interaction.response.send_message(embed=embed)
 
-@bot.command(name="도움말")
-async def help_command(ctx):
+@bot.tree.command(name="도움말", description="명령어 목록 표시")
+async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(title="명령어 목록", color=discord.Color.green())
-    embed.add_field(name="!ping",   value="봇 응답속도 확인",     inline=False)
-    embed.add_field(name="!안녕",   value="인사",                  inline=False)
-    embed.add_field(name="!정보",   value="봇 정보 확인",          inline=False)
-    embed.add_field(name="!도움말", value="명령어 목록 표시",       inline=False)
-    await ctx.send(embed=embed)
+    embed.add_field(name="/ping",   value="봇 응답속도 확인",     inline=False)
+    embed.add_field(name="/안녕",   value="인사",                  inline=False)
+    embed.add_field(name="/정보",   value="봇 정보 확인",          inline=False)
+    embed.add_field(name="/도움말", value="명령어 목록 표시",       inline=False)
+    await interaction.response.send_message(embed=embed)
 
 # ── 실행 ────────────────────────────────────────────────
 
